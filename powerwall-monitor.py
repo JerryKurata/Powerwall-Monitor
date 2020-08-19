@@ -19,9 +19,18 @@ from datetime import datetime
 from gateway_comm import gateway  # methods to communication with PW Gateway
 from powerwall_db import db
 
+
 #   Constants
+dbHost = "localhost" # address of dbServer
+dbDatabase = "powerwall"      # name of database 
+dbUser = "powerwall_user"          # Username to authenticate
+dbPassword = "PW_Admin1999"      # password to authenticate
+
 #gw_url = "https://powerwall"    # powerwall = ip address is in my hosts file  # replacable with command line arg 
 #gw_cert_path = "cacert.pem"
+
+
+trace_on = False
 
 # To do: test and add more methods!
 
@@ -29,10 +38,13 @@ from powerwall_db import db
 #       get data from Powerwall Gateway
 #       get data from Inverters
 
+
+
 def display_json(title, json_output):
     print(title, datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
     print( json.dumps(json_output, indent=4))
 
+#   test harness
 def test(gw_addr, gw_cert_path):
     print('in main')
 
@@ -41,25 +53,31 @@ def test(gw_addr, gw_cert_path):
     gw = gateway(gw_url, gw_cert_path)
 
     print()
-    
-    display_json("State of charge (json formatted)",state_of_charge_json)
+    # State of charge
+    display_json("State of charge (json formatted)",gw.getMeterStateOfCharge().json())
     
     # Site name
     display_json("Site name (json formatted)", gw.getSiteName().json())
+
+    # Power Walls
+    display_json("Powerwalls (json formatted)", gw.getPowerwalls().json())
+
+    # Meter Power
     meter_power_output = gw.getMeterPower()
     # print("Meter Power (raw):",meter_power_output)
     meter_power_json = meter_power_output.json()
     display_json("Meter Power (json formatted)",meter_power_json)
     # meter_power_parsed = json.loads(meter_power_json)
-    print("Site:", meter_power_json['site'])
-    print ("Key - value pairs for Site")
-    for k, v in meter_power_json['site'].items():
-        print ("    ", k, v)
+    # print("Site:", meter_power_json['site'])
+    # print ("Key - value pairs for Site")
+    # for k, v in meter_power_json['site'].items():
+    #     print ("    ", k, v)
 
+    # State of charge
     meter_soc_json = gw.getMeterStateOfCharge().json()
     display_json("Meter state of charge (json formatted)", meter_soc_json)
-    for k, v in meter_soc_json.items():
-        print ("    ", k, v)
+    # for k, v in meter_soc_json.items():
+    #     print ("    ", k, v)
     # print("Meter Power (json):", json_output)
     # print("Meter Power (json formatted):")
     # print( json.dumps(json_output, indent=4))
@@ -72,8 +90,10 @@ def main(gw_addr, gw_cert_path, polling_interval):
     gw_url = "https://" + gw_addr
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)  # disabled this warning 
     gw = gateway(gw_url, gw_cert_path)
-    pw_db = db()
-    
+    pw_db = db(dbHost, dbDatabase, dbUser, dbPassword)   # connect to database
+    pw_db.connect()
+    # print('Connected to db')
+
     # polling flag and timer
     do_polling = True
     start_time = time.time()
@@ -81,25 +101,19 @@ def main(gw_addr, gw_cert_path, polling_interval):
     # Get new 
     while (do_polling):
 
-        log_date = datetime.now()
-        # State of charger
-        state_of_charge_json = gw.getMeterStateOfCharge().json()
-        meter_power_json = gw.getMeterPower().json()
-        print(state_of_charge_json)
-        # write values to db
-
-        # add something to terminate immediate if do_pooling goes false.
-
+        # time stamp of all readings in this poll cycle
+        poll_timestamp = datetime.now()
+        
+        # Log readings for the time cycle
+        #   State of charge
+        pw_db.add(poll_timestamp, "Meter_State_Of_Charge", json.dumps(gw.getMeterStateOfCharge().json()))
+        #   Meter Power
+        pw_db.add(poll_timestamp, "Meter_Power", json.dumps(gw.getMeterPower().json()))
+        # Display log time
+        if (trace_on):
+            print ("logged at " , poll_timestamp.strftime("%Y-%m-%d %H:%M:%S"))
         # wait until next interval.  Remove time to execute 
         time.sleep(polling_interval - ((time.time() - start_time) % polling_interval))
-
-
-
-        
-
-
-        
-
 
    
 
@@ -112,11 +126,13 @@ if __name__ == "__main__":
   
     # default of 'powerwall' reference entry in HOSTS file containing ip addr of gateway
     # default to carcert.pem as name of certificate user created (NOT CURRENLY USED)
-    ap.add_argument('--gw_address',  default="powerwall", help="name or address of powerwall gateway" )
-    ap.add_argument('--gw_cert',  default="cacert.pem", help="path to certification file" )
+    ap.add_argument("--gw_address",  default="powerwall", help="name or address of powerwall gateway" )
+    ap.add_argument("--gw_cert",  default="cacert.pem", help="path to certification file" )
+    ap.add_argument("--trace", default=False, help="Display trace information to console")
  
-    # An illustration of how access the arguments.
+    # get args
     args = ap.parse_args()
+    trace_on = args.trace
 
     # print("gw_address:", args.gw_address)
     # print("gw_cert:", args.gw_cert)

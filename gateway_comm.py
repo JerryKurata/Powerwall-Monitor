@@ -120,3 +120,9 @@ class gateway:
     def Logout(self):
        return self.request_data("/api/logout", None) 
 
+    # Grid faults - 
+    def getGridFaults(self):
+        return self.request_data("/api/system_status/grid_faults", None)
+
+    
+
