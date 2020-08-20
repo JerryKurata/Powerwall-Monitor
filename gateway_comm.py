@@ -43,7 +43,7 @@ class gateway:
     # Gateway requests
  
     # get Meter/Power output
-    def getMeterPower(self):
+    def getMeterAggregates(self):
         return self.request_data("/api/meters/aggregates", None) 
 
     # get site specific meter data

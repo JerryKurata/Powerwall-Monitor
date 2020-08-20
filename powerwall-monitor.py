@@ -30,7 +30,7 @@ dbPassword = "PW_Admin1999"      # password to authenticate
 #gw_cert_path = "cacert.pem"
 
 
-trace_on = False
+#trace_on = True     # set to true enable printing trace messages
 
 # To do: test and add more methods!
 
@@ -92,27 +92,45 @@ def main(gw_addr, gw_cert_path, polling_interval):
     gw = gateway(gw_url, gw_cert_path)
     pw_db = db(dbHost, dbDatabase, dbUser, dbPassword)   # connect to database
     pw_db.connect()
-    # print('Connected to db')
+    if (trace_on):
+        print('Connected to db')
 
     # polling flag and timer
     do_polling = True
     start_time = time.time()
+    retrieved_one_time_info = False
 
     # Get new 
     while (do_polling):
 
         # time stamp of all readings in this poll cycle
         poll_timestamp = datetime.now()
-        
-        # Log readings for the time cycle
+
+        #  get these items once per polling session
+        if (not retrieved_one_time_info):
+            pw_db.add(poll_timestamp, "Site_Info", json.dumps(gw.getSiteInfo().json()))
+            pw_db.add(poll_timestamp, "Status", json.dumps(gw.getStatus().json()))
+            retrieved_one_time_info = True
+
+        # Get these items every polling interval
+        #   Grid status - Status of grid up/down, etc.
+        pw_db.add(poll_timestamp, "Grid_Status", json.dumps(gw.getGridStatus().json()))
+
+        #   Site Master - Gateway status - talking to Tesla, state
+        pw_db.add(poll_timestamp, "Site_Master", json.dumps(gw.getSitemaster().json()))
+
+        #   Meter aggregate - current solar, grid, battery production and home usage
+        pw_db.add(poll_timestamp, "Meter_Aggregates", json.dumps(gw.getMeterAggregates().json()))
+
         #   State of charge
         pw_db.add(poll_timestamp, "Meter_State_Of_Charge", json.dumps(gw.getMeterStateOfCharge().json()))
-        #   Meter Power
-        pw_db.add(poll_timestamp, "Meter_Power", json.dumps(gw.getMeterPower().json()))
-        # Display log time
+      
+        #   Display log time
         if (trace_on):
-            print ("logged at " , poll_timestamp.strftime("%Y-%m-%d %H:%M:%S"))
-        # wait until next interval.  Remove time to execute 
+            print ("logged at", poll_timestamp.strftime("%Y-%m-%d %H:%M:%S"))
+
+        # wait until next interval.  
+        #    ---  Should I update calculations to remove time to obtain and store info?
         time.sleep(polling_interval - ((time.time() - start_time) % polling_interval))
 
    
@@ -128,7 +146,7 @@ if __name__ == "__main__":
     # default to carcert.pem as name of certificate user created (NOT CURRENLY USED)
     ap.add_argument("--gw_address",  default="powerwall", help="name or address of powerwall gateway" )
     ap.add_argument("--gw_cert",  default="cacert.pem", help="path to certification file" )
-    ap.add_argument("--trace", default=False, help="Display trace information to console")
+    ap.add_argument("--trace", default=True, help="Display trace information to console")
  
     # get args
     args = ap.parse_args()
@@ -138,5 +156,3 @@ if __name__ == "__main__":
     # print("gw_cert:", args.gw_cert)
   
     main(args.gw_address, args.gw_cert, 10) # (5 * 60))  # poll every 5 minutes  (5 * 60 sec)
-
-

@@ -34,7 +34,7 @@ class db:
             + " dbname=" + self.dbPath  \
             + " user=" + self.dbUser \
             + " password=" + self.dbPassword
-        print(connectStr)
+        # print(connectStr)
         self.__conn =  psycopg2.connect(connectStr)
         # Open Cursor to perform DB ops
         self.__cur = self.__conn.cursor()
