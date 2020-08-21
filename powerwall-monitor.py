@@ -124,6 +124,9 @@ def main(gw_addr, gw_cert_path, polling_interval):
 
         #   State of charge
         pw_db.add(poll_timestamp, "Meter_State_Of_Charge", json.dumps(gw.getMeterStateOfCharge().json()))
+
+        #  Grid faults 
+        pw_db.add(poll_timestamp, "Grid_Faults", json.dumps(gw.getGridFaults().json()))
       
         #   Display log time
         if (trace_on):

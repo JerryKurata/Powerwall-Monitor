@@ -120,7 +120,8 @@ class gateway:
     def Logout(self):
        return self.request_data("/api/logout", None) 
 
-    # Grid faults - 
+    # Grid faults - if it shows faults, it may have limit.  Returned [] 4 days after power outage.  
+    #                  I am not sure we can depend on this to remember grid failures.
     def getGridFaults(self):
         return self.request_data("/api/system_status/grid_faults", None)
 
