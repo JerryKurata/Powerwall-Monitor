@@ -75,6 +75,8 @@ class gateway:
     def getPowerwalls(self):
         return self.request_data("/api/powerwalls", None) 
 
+    def getPowerwallsStatus(self):
+        return self.request_data("/api/powerwalls/status", None)
 
     # Customer registration
     #   {"privacy_notice":true,"limited_warranty":true,"grid_services":null,"marketing":null,"registered":true,"timed_out_registration":false}

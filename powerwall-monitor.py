@@ -21,10 +21,10 @@ from powerwall_db import db
 
 
 #   Constants
-dbHost = "localhost" # address of dbServer
-dbDatabase = "powerwall"      # name of database 
-dbUser = "powerwall_user"          # Username to authenticate
-dbPassword = "PW_Admin1999"      # password to authenticate
+# dbHost = "localhost" # address of dbServer
+# dbDatabase = "powerwall"      # name of database 
+# dbUser = "powerwall_user"          # Username to authenticate
+# dbPassword = "PW_Admin1999"      # password to authenticate
 
 #gw_url = "https://powerwall"    # powerwall = ip address is in my hosts file  # replacable with command line arg 
 #gw_cert_path = "cacert.pem"
@@ -84,13 +84,13 @@ def test(gw_addr, gw_cert_path):
 
 # Entry point of main acquisition
 #  gw_addr = ip of gateway,  gw_cert_path = cert file, polling_interval = polling interval in seconds
-def main(gw_addr, gw_cert_path, polling_interval):
+def main(gw_addr, gw_cert_path, db_Host, db_Database, db_User, db_Password, polling_interval):
 
     # local variables
     gw_url = "https://" + gw_addr
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)  # disabled this warning 
     gw = gateway(gw_url, gw_cert_path)
-    pw_db = db(dbHost, dbDatabase, dbUser, dbPassword)   # connect to database
+    pw_db = db(db_Host, db_Database, db_User, db_Password)   # connect to database
     pw_db.connect()
     if (trace_on):
         print('Connected to db')
@@ -128,6 +128,9 @@ def main(gw_addr, gw_cert_path, polling_interval):
         #  Grid faults 
         pw_db.add(poll_timestamp, "Grid_Faults", json.dumps(gw.getGridFaults().json()))
       
+        # Powerwalls status - needs access rights
+        #pw_db.add(poll_timestamp, "Powerwalls_Status", json.dumps(gw.getPowerwallsStatus().json()))
+
         #   Display log time
         if (trace_on):
             print ("logged at", poll_timestamp.strftime("%Y-%m-%d %H:%M:%S"))
@@ -150,6 +153,10 @@ if __name__ == "__main__":
     ap.add_argument("--gw_address",  default="powerwall", help="name or address of powerwall gateway" )
     ap.add_argument("--gw_cert",  default="cacert.pem", help="path to certification file" )
     ap.add_argument("--trace", default=True, help="Display trace information to console")
+    ap.add_argument("--db_host", default="localhost", help="database server address")
+    ap.add_argument("--db_name", default="powerwall", help="database name")
+    ap.add_argument("--db_user", default="powerwall_user", help="database server address")
+    ap.add_argument("--db_pw", default="PW_Admin1999", help="database server address")
  
     # get args
     args = ap.parse_args()
@@ -158,4 +165,4 @@ if __name__ == "__main__":
     # print("gw_address:", args.gw_address)
     # print("gw_cert:", args.gw_cert)
   
-    main(args.gw_address, args.gw_cert, 10) # (5 * 60))  # poll every 5 minutes  (5 * 60 sec)
+    main(args.gw_address, args.gw_cert, args.db_host, args.db_name, args.db_user, args.db_pw, 10) # (5 * 60))  # poll every 5 minutes  (5 * 60 sec)
